@@ -1,0 +1,17 @@
+[package]
+name = "nines"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "A k9s-shaped terminal shell — the 9s UI contract, implemented for ratatui"
+license = "Apache-2.0"
+publish = false
+repository = "https://github.com/Niche-Knack-Apps/nines"
+homepage = "https://nk.tools"
+
+[dependencies]
+ratatui = "0.30"
+crossterm = "0.29"
+unicode-width = "0.2"
+
+[dev-dependencies]

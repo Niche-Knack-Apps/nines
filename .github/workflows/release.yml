@@ -1,0 +1,50 @@
+name: release
+
+# Every push to main that carries a new VERSION becomes a release:
+# tag vX.Y.Z (and go/vX.Y.Z for the Go module in go/) plus a GitHub release.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Decide
+        id: v
+        run: |
+          v=$(tr -d '[:space:]' < VERSION)
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v$v" >/dev/null; then
+            echo "v$v already released; nothing to do."
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Tag and publish
+        if: steps.v.outputs.new == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ steps.v.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "go/v$V" -m "nines Go module v$V" "$GITHUB_SHA"
+          git push origin "go/v$V"
+          gh release create "v$V" --target "$GITHUB_SHA" --title "nines v$V" --generate-notes \
+            --notes "Go: \`go get github.com/Niche-Knack-Apps/nines/go@v$V\` · Rust: \`nines = { git = \"https://github.com/Niche-Knack-Apps/nines\", tag = \"v$V\" }\` · More from Niche-Knack at https://nk.tools"
